@@ -1697,93 +1697,496 @@ def build_dashboard_html(datasets_json: str) -> str:
         { id: "compareImpact", type: "radar", title: "Impact Metrics" },
       ];
 
-      additionalCharts.forEach((config) => {
-        const element = document.getElementById(config.id);
-        if (element) {
-          // Create meaningful data based on actual stats
-          let chartData;
-          
-          if (config.type === "radar") {
-            chartData = {
-              labels: ['Metric A', 'Metric B', 'Metric C', 'Metric D'],
-              datasets: [
-                {
+      // Only render additional charts if both players are selected
+      if (playerA && playerB) {
+        additionalCharts.forEach((config) => {
+          const element = document.getElementById(config.id);
+          if (element) {
+            // Create meaningful data based on actual stats
+            let chartData;
+            let chartOptions = {
+              responsive: true,
+              plugins: { legend: { position: "bottom" } },
+            };
+            
+            // Specific chart configurations with meaningful data and axis labels
+            switch(config.id) {
+            case "compareKeyPasses":
+              chartData = {
+                labels: ['Key Passes/90', 'Through Balls/90', 'Crosses/90'],
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [
+                      (numeric(playerA.assisted_shots) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.through_balls) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.crosses) || 0) / Math.max(1, numeric(playerA.minutes) / 90)
+                    ],
+                    backgroundColor: "#3b82f6",
+                  },
+                  {
+                    label: playerB.player,
+                    data: [
+                      (numeric(playerB.assisted_shots) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.through_balls) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.crosses) || 0) / Math.max(1, numeric(playerB.minutes) / 90)
+                    ],
+                    backgroundColor: "#ef4444",
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                y: { title: { display: true, text: "Actions per 90 minutes" } }
+              };
+              break;
+
+            case "comparePassLength":
+              chartData = {
+                labels: ['Short Passes %', 'Medium Passes %', 'Long Passes %'],
+                datasets: [{
                   label: playerA.player,
                   data: [
-                    Math.min(100, (numeric(playerA.goals) || 0) * 10),
-                    Math.min(100, (numeric(playerA.assists) || 0) * 10),
-                    Math.min(100, (numeric(playerA.passes_pct) || 0)),
-                    Math.min(100, (numeric(playerA.tackles) || 0) * 5)
+                    numeric(playerA.passes_pct_short) || 0,
+                    numeric(playerA.passes_pct_medium) || 0,
+                    numeric(playerA.passes_pct_long) || 0
                   ],
-                  borderColor: "#3b82f6",
-                  backgroundColor: "#3b82f644",
-                },
-                {
+                  backgroundColor: ["#3b82f6", "#60a5fa", "#93c5fd"],
+                }, {
                   label: playerB.player,
                   data: [
-                    Math.min(100, (numeric(playerB.goals) || 0) * 10),
-                    Math.min(100, (numeric(playerB.assists) || 0) * 10),
-                    Math.min(100, (numeric(playerB.passes_pct) || 0)),
-                    Math.min(100, (numeric(playerB.tackles) || 0) * 5)
+                    numeric(playerB.passes_pct_short) || 0,
+                    numeric(playerB.passes_pct_medium) || 0,
+                    numeric(playerB.passes_pct_long) || 0
                   ],
-                  borderColor: "#ef4444",
-                  backgroundColor: "#ef444444",
-                },
-              ],
-            };
-          } else if (config.type === "bar") {
-            chartData = {
-              labels: ['Stat 1', 'Stat 2', 'Stat 3'],
-              datasets: [
-                {
-                  label: playerA.player,
-                  data: [
-                    goalsPer90(playerA),
-                    assistsPer90(playerA),
-                    numeric(playerA.passes) / Math.max(1, numeric(playerA.minutes) / 90)
+                  backgroundColor: ["#ef4444", "#f87171", "#fca5a5"],
+                }]
+              };
+              break;
+
+            case "compareAerial":
+              chartData = {
+                labels: ['Aerial Duels Won/90', 'Aerial Win %'],
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [
+                      (numeric(playerA.aerials_won) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      numeric(playerA.aerials_won_pct) || 0
+                    ],
+                    backgroundColor: "#3b82f6",
+                  },
+                  {
+                    label: playerB.player,
+                    data: [
+                      (numeric(playerB.aerials_won) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      numeric(playerB.aerials_won_pct) || 0
+                    ],
+                    backgroundColor: "#ef4444",
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                y: { title: { display: true, text: "Aerials per 90 / Win %" } }
+              };
+              break;
+
+            case "compareTackles":
+              chartData = {
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [{ 
+                      x: (numeric(playerA.tackles) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      y: numeric(playerA.tackles_won) / Math.max(1, numeric(playerA.tackles)) * 100 || 0
+                    }],
+                    backgroundColor: "#3b82f6",
+                    pointRadius: 10,
+                  },
+                  {
+                    label: playerB.player,
+                    data: [{ 
+                      x: (numeric(playerB.tackles) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      y: numeric(playerB.tackles_won) / Math.max(1, numeric(playerB.tackles)) * 100 || 0
+                    }],
+                    backgroundColor: "#ef4444",
+                    pointRadius: 10,
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                x: { title: { display: true, text: "Tackles per 90" } },
+                y: { title: { display: true, text: "Tackle Success %" } }
+              };
+              break;
+
+            case "comparePressure":
+              chartData = {
+                labels: ['Pressures/90', 'Blocks/90', 'Interceptions/90', 'Clearances/90'],
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [
+                      (numeric(playerA.pressures) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.blocks) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.interceptions) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.clearances) || 0) / Math.max(1, numeric(playerA.minutes) / 90)
+                    ],
+                    borderColor: "#3b82f6",
+                    backgroundColor: "#3b82f644",
+                  },
+                  {
+                    label: playerB.player,
+                    data: [
+                      (numeric(playerB.pressures) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.blocks) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.interceptions) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.clearances) || 0) / Math.max(1, numeric(playerB.minutes) / 90)
+                    ],
+                    borderColor: "#ef4444",
+                    backgroundColor: "#ef444444",
+                  },
+                ],
+              };
+              break;
+
+            case "compareDribbling":
+              chartData = {
+                labels: ['Take-ons/90', 'Successful %', 'Carries/90'],
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [
+                      (numeric(playerA.take_ons) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      numeric(playerA.take_ons_won_pct) || 0,
+                      (numeric(playerA.carries) || 0) / Math.max(1, numeric(playerA.minutes) / 90)
+                    ],
+                    backgroundColor: "#3b82f6",
+                  },
+                  {
+                    label: playerB.player,
+                    data: [
+                      (numeric(playerB.take_ons) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      numeric(playerB.take_ons_won_pct) || 0,
+                      (numeric(playerB.carries) || 0) / Math.max(1, numeric(playerB.minutes) / 90)
+                    ],
+                    backgroundColor: "#ef4444",
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                y: { title: { display: true, text: "Per 90 / Success %" } }
+              };
+              break;
+
+            case "compareTouches":
+              chartData = {
+                labels: ['Def 3rd Touches', 'Mid 3rd Touches', 'Att 3rd Touches'],
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [
+                      (numeric(playerA.touches_def_3rd) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.touches_mid_3rd) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.touches_att_3rd) || 0) / Math.max(1, numeric(playerA.minutes) / 90)
+                    ],
+                    backgroundColor: "#3b82f6",
+                  },
+                  {
+                    label: playerB.player,
+                    data: [
+                      (numeric(playerB.touches_def_3rd) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.touches_mid_3rd) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.touches_att_3rd) || 0) / Math.max(1, numeric(playerB.minutes) / 90)
+                    ],
+                    backgroundColor: "#ef4444",
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                y: { title: { display: true, text: "Touches per 90" } }
+              };
+              break;
+
+            case "compareWorkRate":
+              chartData = {
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [{ 
+                      x: (numeric(playerA.passes) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      y: ((numeric(playerA.tackles) || 0) + (numeric(playerA.interceptions) || 0)) / Math.max(1, numeric(playerA.minutes) / 90)
+                    }],
+                    backgroundColor: "#3b82f6",
+                    pointRadius: 10,
+                  },
+                  {
+                    label: playerB.player,
+                    data: [{ 
+                      x: (numeric(playerB.passes) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      y: ((numeric(playerB.tackles) || 0) + (numeric(playerB.interceptions) || 0)) / Math.max(1, numeric(playerB.minutes) / 90)
+                    }],
+                    backgroundColor: "#ef4444",
+                    pointRadius: 10,
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                x: { title: { display: true, text: "Passes per 90" } },
+                y: { title: { display: true, text: "Defensive Actions per 90" } }
+              };
+              break;
+
+            case "compareMinutesOutput":
+              chartData = {
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [{ 
+                      x: numeric(playerA.minutes) || 0,
+                      y: goalsPer90(playerA) + assistsPer90(playerA)
+                    }],
+                    backgroundColor: "#3b82f6",
+                    pointRadius: 10,
+                  },
+                  {
+                    label: playerB.player,
+                    data: [{ 
+                      x: numeric(playerB.minutes) || 0,
+                      y: goalsPer90(playerB) + assistsPer90(playerB)
+                    }],
+                    backgroundColor: "#ef4444",
+                    pointRadius: 10,
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                x: { title: { display: true, text: "Minutes Played" } },
+                y: { title: { display: true, text: "Goals + Assists per 90" } }
+              };
+              break;
+
+            case "compareEfficiency":
+              chartData = {
+                labels: ['Pass Accuracy %', 'Shot Accuracy %', 'Dribble Success %', 'Tackle Success %'],
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [
+                      numeric(playerA.passes_pct) || 0,
+                      (numeric(playerA.shots_on_target) / Math.max(1, numeric(playerA.shots)) * 100) || 0,
+                      numeric(playerA.take_ons_won_pct) || 0,
+                      (numeric(playerA.tackles_won) / Math.max(1, numeric(playerA.tackles)) * 100) || 0
+                    ],
+                    borderColor: "#3b82f6",
+                    backgroundColor: "#3b82f644",
+                  },
+                  {
+                    label: playerB.player,
+                    data: [
+                      numeric(playerB.passes_pct) || 0,
+                      (numeric(playerB.shots_on_target) / Math.max(1, numeric(playerB.shots)) * 100) || 0,
+                      numeric(playerB.take_ons_won_pct) || 0,
+                      (numeric(playerB.tackles_won) / Math.max(1, numeric(playerB.tackles)) * 100) || 0
+                    ],
+                    borderColor: "#ef4444",
+                    backgroundColor: "#ef444444",
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                r: { suggestedMin: 0, suggestedMax: 100 }
+              };
+              break;
+
+            case "compareRiskReward":
+              chartData = {
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [{ 
+                      x: (numeric(playerA.miscontrols) + numeric(playerA.disposals)) / Math.max(1, numeric(playerA.minutes) / 90),
+                      y: (numeric(playerA.goals) + numeric(playerA.assists)) / Math.max(1, numeric(playerA.minutes) / 90)
+                    }],
+                    backgroundColor: "#3b82f6",
+                    pointRadius: 10,
+                  },
+                  {
+                    label: playerB.player,
+                    data: [{ 
+                      x: (numeric(playerB.miscontrols) + numeric(playerB.disposals)) / Math.max(1, numeric(playerB.minutes) / 90),
+                      y: (numeric(playerB.goals) + numeric(playerB.assists)) / Math.max(1, numeric(playerB.minutes) / 90)
+                    }],
+                    backgroundColor: "#ef4444",
+                    pointRadius: 10,
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                x: { title: { display: true, text: "Turnovers per 90" } },
+                y: { title: { display: true, text: "Goals + Assists per 90" } }
+              };
+              break;
+
+            case "compareConsistency":
+              chartData = {
+                labels: ['Games Started', 'Full Games', 'Impact Games (G/A)'],
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [
+                      numeric(playerA.games_starts) || 0,
+                      Math.floor((numeric(playerA.minutes) || 0) / 90),
+                      (numeric(playerA.goals) + numeric(playerA.assists)) || 0
+                    ],
+                    backgroundColor: "#3b82f6",
+                  },
+                  {
+                    label: playerB.player,
+                    data: [
+                      numeric(playerB.games_starts) || 0,
+                      Math.floor((numeric(playerB.minutes) || 0) / 90),
+                      (numeric(playerB.goals) + numeric(playerB.assists)) || 0
+                    ],
+                    backgroundColor: "#ef4444",
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                y: { title: { display: true, text: "Count" } }
+              };
+              break;
+
+            case "compareImpact":
+              chartData = {
+                labels: ['Goals/90', 'Assists/90', 'Key Passes/90', 'Progressive Actions/90'],
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [
+                      goalsPer90(playerA),
+                      assistsPer90(playerA),
+                      (numeric(playerA.assisted_shots) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      ((numeric(playerA.progressive_passes) || 0) + (numeric(playerA.progressive_carries) || 0)) / Math.max(1, numeric(playerA.minutes) / 90)
+                    ],
+                    borderColor: "#3b82f6",
+                    backgroundColor: "#3b82f644",
+                  },
+                  {
+                    label: playerB.player,
+                    data: [
+                      goalsPer90(playerB),
+                      assistsPer90(playerB),
+                      (numeric(playerB.assisted_shots) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      ((numeric(playerB.progressive_passes) || 0) + (numeric(playerB.progressive_carries) || 0)) / Math.max(1, numeric(playerB.minutes) / 90)
+                    ],
+                    borderColor: "#ef4444",
+                    backgroundColor: "#ef444444",
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                r: { suggestedMin: 0 }
+              };
+              break;
+
+            default:
+              // Fallback for any missing charts
+              if (config.type === "radar") {
+                chartData = {
+                  labels: ['Goals/90', 'Assists/90', 'Pass %', 'Tackles/90'],
+                  datasets: [
+                    {
+                      label: playerA.player,
+                      data: [
+                        goalsPer90(playerA) * 10,
+                        assistsPer90(playerA) * 10,
+                        numeric(playerA.passes_pct) || 0,
+                        (numeric(playerA.tackles) || 0) / Math.max(1, numeric(playerA.minutes) / 90) * 10
+                      ],
+                      borderColor: "#3b82f6",
+                      backgroundColor: "#3b82f644",
+                    },
+                    {
+                      label: playerB.player,
+                      data: [
+                        goalsPer90(playerB) * 10,
+                        assistsPer90(playerB) * 10,
+                        numeric(playerB.passes_pct) || 0,
+                        (numeric(playerB.tackles) || 0) / Math.max(1, numeric(playerB.minutes) / 90) * 10
+                      ],
+                      borderColor: "#ef4444",
+                      backgroundColor: "#ef444444",
+                    },
                   ],
-                  backgroundColor: "#3b82f6",
-                },
-                {
-                  label: playerB.player,
-                  data: [
-                    goalsPer90(playerB),
-                    assistsPer90(playerB),
-                    numeric(playerB.passes) / Math.max(1, numeric(playerB.minutes) / 90)
+                };
+              } else if (config.type === "bar") {
+                chartData = {
+                  labels: ['Goals/90', 'Assists/90', 'Passes/90'],
+                  datasets: [
+                    {
+                      label: playerA.player,
+                      data: [
+                        goalsPer90(playerA),
+                        assistsPer90(playerA),
+                        (numeric(playerA.passes) || 0) / Math.max(1, numeric(playerA.minutes) / 90)
+                      ],
+                      backgroundColor: "#3b82f6",
+                    },
+                    {
+                      label: playerB.player,
+                      data: [
+                        goalsPer90(playerB),
+                        assistsPer90(playerB),
+                        (numeric(playerB.passes) || 0) / Math.max(1, numeric(playerB.minutes) / 90)
+                      ],
+                      backgroundColor: "#ef4444",
+                    },
                   ],
-                  backgroundColor: "#ef4444",
-                },
-              ],
-            };
-          } else {
-            chartData = {
-              datasets: [
-                {
-                  label: playerA.player,
-                  data: [{ x: goalsPer90(playerA) * 10, y: assistsPer90(playerA) * 10 }],
-                  backgroundColor: "#3b82f6",
-                  pointRadius: 10,
-                },
-                {
-                  label: playerB.player,
-                  data: [{ x: goalsPer90(playerB) * 10, y: assistsPer90(playerB) * 10 }],
-                  backgroundColor: "#ef4444",
-                  pointRadius: 10,
-                },
-              ],
-            };
+                };
+                chartOptions.scales = {
+                  y: { title: { display: true, text: "Per 90 Minutes" } }
+                };
+              } else {
+                chartData = {
+                  datasets: [
+                    {
+                      label: playerA.player,
+                      data: [{ x: goalsPer90(playerA), y: assistsPer90(playerA) }],
+                      backgroundColor: "#3b82f6",
+                      pointRadius: 10,
+                    },
+                    {
+                      label: playerB.player,
+                      data: [{ x: goalsPer90(playerB), y: assistsPer90(playerB) }],
+                      backgroundColor: "#ef4444",
+                      pointRadius: 10,
+                    },
+                  ],
+                };
+                chartOptions.scales = {
+                  x: { title: { display: true, text: "Goals per 90" } },
+                  y: { title: { display: true, text: "Assists per 90" } }
+                };
+              }
           }
 
           upsertChart(config.id.replace("compare", "").toLowerCase(), element, {
             type: config.type,
             data: chartData,
-            options: {
-              responsive: true,
-              plugins: { legend: { position: "bottom" } },
-            },
+            options: chartOptions,
           });
         }
       });
+      } else {
+        // Clear charts when players are not selected
+        additionalCharts.forEach((config) => {
+          const element = document.getElementById(config.id);
+          if (element && charts[config.id.replace("compare", "").toLowerCase()]) {
+            charts[config.id.replace("compare", "").toLowerCase()].data = { labels: [], datasets: [] };
+            charts[config.id.replace("compare", "").toLowerCase()].update();
+          }
+        });
+      } // End of playerA && playerB check
     }
 
     function updateDashboard() {
@@ -2223,7 +2626,9 @@ def build_dashboard_html(datasets_json: str) -> str:
               data: carryProgressionData,
               backgroundColor: "#a855f7aa",
               borderColor: "#a855f7",
-              pointRadius: (ctx) => scaledRadius(ctx.raw?.size, 4, 16, 20),
+              pointRadius: function(context) {
+                return scaledRadius(context.raw?.size, 4, 16, 20);
+              },
             },
             ...carryProgressionHighlights,
           ],
@@ -2357,7 +2762,9 @@ def build_dashboard_html(datasets_json: str) -> str:
               data: defensiveActivityData,
               backgroundColor: "#34d399aa",
               borderColor: "#34d399",
-              pointRadius: (ctx) => scaledRadius(ctx.raw?.size, 4, 16, 25),
+              pointRadius: function(context) {
+                return scaledRadius(context.raw?.size, 4, 16, 25);
+              },
             },
             ...defensiveActivityHighlights,
           ],
@@ -2560,7 +2967,9 @@ def build_dashboard_html(datasets_json: str) -> str:
             data: per90Data,
             backgroundColor: "#c084fcaa",
             borderColor: "#c084fc",
-            pointRadius: (ctx) => Math.min(8, Math.max(3, (ctx.raw?.minutes ?? 0) / 400)),
+            pointRadius: function(context) {
+              return Math.min(8, Math.max(3, (context.raw?.minutes ?? 0) / 400));
+            },
           }],
         },
         options: {
@@ -3023,7 +3432,9 @@ def build_dashboard_html(datasets_json: str) -> str:
               data: shotQualityData,
               backgroundColor: "#f59e0baa",
               borderColor: "#f59e0b",
-              pointRadius: (ctx) => scaledRadius(ctx.raw?.size, 3, 12, 8),
+              pointRadius: function(context) {
+                return scaledRadius(context.raw?.size, 3, 12, 8);
+              },
             },
             ...shotQualityHighlights,
           ],
@@ -3070,7 +3481,9 @@ def build_dashboard_html(datasets_json: str) -> str:
               data: positionalData,
               backgroundColor: "#8b5cf6aa",
               borderColor: "#8b5cf6",
-              pointRadius: (ctx) => scaledRadius(ctx.raw?.size, 3, 16, 40),
+              pointRadius: function(context) {
+                return scaledRadius(context.raw?.size, 3, 16, 40);
+              },
             },
             ...positionalHighlights,
           ],
@@ -3162,7 +3575,9 @@ def build_dashboard_html(datasets_json: str) -> str:
               data: creativeProductiveData,
               backgroundColor: "#ec4899aa",
               borderColor: "#ec4899",
-              pointRadius: (ctx) => scaledRadius(ctx.raw?.size, 3, 12, 15),
+              pointRadius: function(context) {
+                return scaledRadius(context.raw?.size, 3, 12, 15);
+              },
             },
             ...creativeProductiveHighlights,
           ],
@@ -3260,7 +3675,9 @@ def build_dashboard_html(datasets_json: str) -> str:
               data: turnoverMapData,
               backgroundColor: "#dc2626aa",
               borderColor: "#dc2626",
-              pointRadius: (ctx) => scaledRadius(ctx.raw?.size, 3, 14, 80),
+              pointRadius: function(context) {
+                return scaledRadius(context.raw?.size, 3, 14, 80);
+              },
             },
             ...turnoverMapHighlights,
           ],
@@ -3554,7 +3971,9 @@ def build_dashboard_html(datasets_json: str) -> str:
               data: sprintMapData,
               backgroundColor: "#ef4444aa",
               borderColor: "#ef4444",
-              pointRadius: (ctx) => scaledRadius(ctx.raw?.size, 3, 12, 8),
+              pointRadius: function(context) {
+                return scaledRadius(context.raw?.size, 3, 12, 8);
+              },
             },
             ...sprintMapHighlights,
           ],
@@ -3646,7 +4065,9 @@ def build_dashboard_html(datasets_json: str) -> str:
               data: agilityData,
               backgroundColor: "#a855f7aa",
               borderColor: "#a855f7",
-              pointRadius: (ctx) => scaledRadius(ctx.raw?.size, 3, 10, 100),
+              pointRadius: function(context) {
+                return scaledRadius(context.raw?.size, 3, 10, 100);
+              },
             },
             ...agilityHighlights,
           ],
@@ -3773,7 +4194,9 @@ def build_dashboard_html(datasets_json: str) -> str:
               data: movementData,
               backgroundColor: "#06b6d4aa",
               borderColor: "#06b6d4",
-              pointRadius: (ctx) => scaledRadius(ctx.raw?.size, 3, 12, 20),
+              pointRadius: function(context) {
+                return scaledRadius(context.raw?.size, 3, 12, 20);
+              },
             },
             ...movementHighlights,
           ],
