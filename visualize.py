@@ -1984,7 +1984,7 @@ def build_dashboard_html(datasets_json: str) -> str:
                     label: playerB.player,
                     data: [
                       numeric(playerB.passes_pct) || 0,
-                      (numeric(playerB.shots_on_target) / Math.max(1, numeric(playerB.shots)) * 100) || 0,
+                      ((numeric(playerB.shots_on_target) || 0) / Math.max(1, numeric(playerB.shots) || 1) * 100) || 0,
                       numeric(playerB.take_ons_won_pct) || 0,
                       (numeric(playerB.tackles_won) / Math.max(1, numeric(playerB.tackles)) * 100) || 0
                     ],
