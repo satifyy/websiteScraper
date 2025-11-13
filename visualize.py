@@ -1806,7 +1806,7 @@ def build_dashboard_html(datasets_json: str) -> str:
                     label: playerB.player,
                     data: [{ 
                       x: (numeric(playerB.tackles) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
-                      y: numeric(playerB.tackles_won) / Math.max(1, numeric(playerB.tackles)) * 100 || 0
+                      y: (numeric(playerB.tackles_won) || 0) / Math.max(1, numeric(playerB.tackles)) * 100
                     }],
                     backgroundColor: "#ef4444",
                     pointRadius: 10,
