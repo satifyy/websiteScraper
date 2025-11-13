@@ -2089,6 +2089,38 @@ def build_dashboard_html(datasets_json: str) -> str:
               };
               break;
 
+            case "compareDefensive":
+              chartData = {
+                labels: ['Tackles/90', 'Interceptions/90', 'Clearances/90', 'Blocks/90'],
+                datasets: [
+                  {
+                    label: playerA.player,
+                    data: [
+                      (numeric(playerA.tackles) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.interceptions) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.clearances) || 0) / Math.max(1, numeric(playerA.minutes) / 90),
+                      (numeric(playerA.blocks) || 0) / Math.max(1, numeric(playerA.minutes) / 90)
+                    ],
+                    borderColor: "#3b82f6",
+                    backgroundColor: "#3b82f644",
+                  },
+                  {
+                    label: playerB.player,
+                    data: [
+                      (numeric(playerB.tackles) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.interceptions) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.clearances) || 0) / Math.max(1, numeric(playerB.minutes) / 90),
+                      (numeric(playerB.blocks) || 0) / Math.max(1, numeric(playerB.minutes) / 90)
+                    ],
+                    borderColor: "#ef4444",
+                    backgroundColor: "#ef444444",
+                  },
+                ],
+              };
+              chartOptions.scales = {
+                r: { suggestedMin: 0 }
+              };
+              break;
             default:
               // Fallback for any missing charts
               if (config.type === "radar") {
